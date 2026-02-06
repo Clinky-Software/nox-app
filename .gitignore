@@ -19,7 +19,7 @@ expo-env.d.ts
 *.mobileprovision
 
 # Firebase credentials (sensitive)
-credentials/google-services.json
+
 credentials/GoogleService-Info.plist
 
 # Metro

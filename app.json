@@ -12,7 +12,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.noxchat.app",
       "icon": "./assets/images/Android.png",
-      "googleServicesFile": "./credentials/GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:noxchat.xyz",
         "applinks:www.noxchat.xyz"
@@ -39,7 +38,6 @@
         "backgroundColor": "#0B0F0D",
         "foregroundImage": "./assets/images/Android.png"
       },
-      "googleServicesFile": "./credentials/google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.noxchat.app",
