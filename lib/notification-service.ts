@@ -28,6 +28,7 @@ export interface NotificationSettings {
 class NotificationService {
   private expoPushToken: string | null = null;
   private initialized = false;
+  private tokenSentToServer = false;
   private settings: NotificationSettings = {
     enabled: true,
     sound: true,
@@ -73,15 +74,45 @@ class NotificationService {
       await this.loadSettings();
       await this.loadMutedGroups();
       
+      // Load existing token from storage first
+      await this.loadExistingToken();
+      
       if (this.settings.enabled) {
-        await this.registerForPushNotifications();
+        // Only register if we don't have a token yet
+        if (!this.expoPushToken) {
+          await this.registerForPushNotifications();
+        } else {
+          // We have a token, just make sure server has it
+          await this.ensureTokenOnServer();
+        }
       }
       
       this.initialized = true;
+      console.log('[Notifications] Initialization complete');
     } catch (error) {
-      if (__DEV__) {
-        console.error('Notification init failed:', error);
+      console.error('[Notifications] Init failed:', error);
+    }
+  }
+
+  private async loadExistingToken() {
+    try {
+      const storedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+      if (storedToken) {
+        this.expoPushToken = storedToken;
+        console.log('[Notifications] Loaded existing token from storage');
       }
+    } catch (error) {
+      console.error('[Notifications] Failed to load existing token:', error);
+    }
+  }
+
+  private async ensureTokenOnServer() {
+    if (this.tokenSentToServer || !this.expoPushToken) return;
+    
+    try {
+      await this.sendTokenToServer(this.expoPushToken);
+    } catch (error) {
+      console.error('[Notifications] Failed to ensure token on server:', error);
     }
   }
 
@@ -167,6 +198,7 @@ class NotificationService {
         console.error('[Notifications] Server rejected push token:', response.error);
       } else {
         console.log('[Notifications] Push token registered with server successfully');
+        this.tokenSentToServer = true;
       }
     } catch (error) {
       console.error('[Notifications] Failed to send push token to server:', error);

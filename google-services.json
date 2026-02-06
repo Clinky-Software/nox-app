@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824886305558",
+    "project_id": "noxchat-9e17a",
+    "storage_bucket": "noxchat-9e17a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824886305558:android:9558399d92005fa2ec6637",
+        "android_client_info": {
+          "package_name": "com.noxchat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZNlULo9EHLAsx6a-1me-KNuxcLPoJ7Gc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

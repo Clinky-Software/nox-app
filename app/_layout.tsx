@@ -37,10 +37,15 @@ function RootLayoutNav() {
         const data = response.notification.request.content.data;
         
         // Navigate based on notification data
-        if (data?.type === 'dm' && data?.chatId) {
-          router.push(`/(chat)/conversation/${data.chatId}`);
-        } else if (data?.type === 'group' && data?.chatId) {
-          router.push(`/(chat)/conversation/${data.chatId}`);
+        const chatId = data?.chatId || data?.dmId || data?.groupId;
+        if (data?.type === 'dm' && chatId) {
+          router.push(`/(chat)/conversation/${chatId}`);
+        } else if (data?.type === 'group' && chatId) {
+          router.push(`/(chat)/conversation/${chatId}`);
+        } else if (data?.type === 'dm_message' && chatId) {
+          router.push(`/(chat)/conversation/${chatId}`);
+        } else if (data?.type === 'group_message' && chatId) {
+          router.push(`/(chat)/conversation/${chatId}`);
         }
       });
 
