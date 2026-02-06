@@ -476,20 +476,23 @@ export default function ConversationScreen() {
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
-    const isOwn = item.sender.id === user?.id;
+    // Provide safe fallbacks for sender data
+    const senderId = item.sender?.id || 'unknown';
+    const isOwn = senderId === user?.id;
     const showDate = index === 0 || 
       formatDate(filteredMessages[index - 1]?.createdAt) !== formatDate(item.createdAt);
+    const prevSenderId = filteredMessages[index + 1]?.sender?.id || '';
     const showAvatar = !isOwn && (
       index === filteredMessages.length - 1 || 
-      filteredMessages[index + 1]?.sender.id !== item.sender.id
+      prevSenderId !== senderId
     );
 
     // Anonymous mode handling
     const isAnonymous = groupSettings?.anonymousMode && activeChat?.type === 'group';
     const displayName = isAnonymous ? 'Anonymous' : 
-      (item.sender.displayUsername || item.sender.username || item.sender.name);
-    const displayColor = isAnonymous ? Colors.textSecondary : item.sender.nameColor;
-    const displayImage = isAnonymous ? null : item.sender.image;
+      (item.sender?.displayUsername || item.sender?.username || item.sender?.name || 'Unknown');
+    const displayColor = isAnonymous ? Colors.textSecondary : item.sender?.nameColor;
+    const displayImage = isAnonymous ? null : item.sender?.image;
 
     const hasAttachments = item.attachments && item.attachments.length > 0;
     const hasMediaAttachments = hasAttachments && 

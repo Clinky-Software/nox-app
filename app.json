@@ -12,6 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.noxchat.app",
       "icon": "./assets/images/Android.png",
+      "googleServicesFile": "./credentials/GoogleService-Info.plist",
       "associatedDomains": [
         "applinks:noxchat.xyz",
         "applinks:www.noxchat.xyz"
@@ -38,9 +39,11 @@
         "backgroundColor": "#0B0F0D",
         "foregroundImage": "./assets/images/Android.png"
       },
+      "googleServicesFile": "./credentials/google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.noxchat.app",
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
       "allowBackup": false,
       "intentFilters": [
         {
@@ -90,6 +93,16 @@
         "expo-secure-store",
         {
           "faceIDPermission": "Allow Nox to access your Face ID for secure authentication."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#00FF9A",
+          "defaultChannel": "messages",
+          "sounds": [],
+          "enableBackgroundRemoteNotifications": true
         }
       ]
     ],

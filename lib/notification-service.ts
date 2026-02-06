@@ -91,38 +91,40 @@ class NotificationService {
     }
     
     if (!Notifications || !Device) {
+      console.log('[Notifications] Failed to load notification modules');
       return null;
     }
     
     if (!Device.isDevice) {
-      if (__DEV__) {
-        console.log('Push notifications require a physical device');
-      }
+      console.log('[Notifications] Push notifications require a physical device');
       return null;
     }
 
     try {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      console.log('[Notifications] Existing permission status:', existingStatus);
       let finalStatus = existingStatus;
       
       if (existingStatus !== 'granted') {
+        console.log('[Notifications] Requesting permission...');
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
       
       if (finalStatus !== 'granted') {
-        if (__DEV__) {
-          console.log('Failed to get push token for push notification!');
-        }
+        console.log('[Notifications] Permission denied:', finalStatus);
         return null;
       }
 
+      console.log('[Notifications] Permission granted, getting push token...');
+      
       // Get the Expo push token
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: '72361c25-d3e6-4fc0-b012-ac2685914284',
       });
       
       this.expoPushToken = tokenData.data;
+      console.log('[Notifications] Got push token:', this.expoPushToken.substring(0, 30) + '...');
       
       // Save token locally
       await AsyncStorage.setItem(PUSH_TOKEN_KEY, this.expoPushToken);
@@ -132,6 +134,7 @@ class NotificationService {
       
       // Android specific channel setup
       if (Platform.OS === 'android') {
+        console.log('[Notifications] Setting up Android notification channels...');
         await Notifications.setNotificationChannelAsync('default', {
           name: 'Default',
           importance: Notifications.AndroidImportance.MAX,
@@ -146,20 +149,27 @@ class NotificationService {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#00FF9A',
         });
+        console.log('[Notifications] Android channels configured');
       }
 
       return this.expoPushToken;
     } catch (error) {
-      console.error('Error registering for push notifications:', error);
+      console.error('[Notifications] Error registering for push notifications:', error);
       return null;
     }
   }
 
   private async sendTokenToServer(token: string) {
     try {
-      await apiClient.post('/api/user/push-token', { token, platform: Platform.OS });
+      console.log('[Notifications] Sending push token to server...');
+      const response = await apiClient.post('/api/user/push-token', { token, platform: Platform.OS });
+      if (response.error) {
+        console.error('[Notifications] Server rejected push token:', response.error);
+      } else {
+        console.log('[Notifications] Push token registered with server successfully');
+      }
     } catch (error) {
-      console.error('Failed to send push token to server:', error);
+      console.error('[Notifications] Failed to send push token to server:', error);
     }
   }
 
