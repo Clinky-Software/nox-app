@@ -6,6 +6,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './api-client';
+import { authClient } from './auth-client';
 
 // Lazy load expo-notifications to prevent crashes
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -52,6 +53,8 @@ class NotificationService {
             shouldShowAlert: true,
             shouldPlaySound: true,
             shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
           }),
         });
       } catch (error) {
@@ -109,10 +112,39 @@ class NotificationService {
   private async ensureTokenOnServer() {
     if (this.tokenSentToServer || !this.expoPushToken) return;
     
-    try {
-      await this.sendTokenToServer(this.expoPushToken);
-    } catch (error) {
-      console.error('[Notifications] Failed to ensure token on server:', error);
+    // Wait for auth cookies to be available (up to 10 seconds)
+    for (let waitAttempt = 0; waitAttempt < 10; waitAttempt++) {
+      const cookies = authClient.getCookie();
+      if (cookies) {
+        console.log('[Notifications] Auth cookies available, proceeding with token registration');
+        break;
+      }
+      console.log(`[Notifications] Waiting for auth cookies (${waitAttempt + 1}/10)...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // Check one more time
+    const finalCookies = authClient.getCookie();
+    if (!finalCookies) {
+      console.warn('[Notifications] Auth cookies still not available after waiting, attempting anyway');
+    }
+    
+    // Retry up to 3 times with delay
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[Notifications] Ensuring token on server (attempt ${attempt}/3)...`);
+        await this.sendTokenToServer(this.expoPushToken);
+        if (this.tokenSentToServer) {
+          return; // Success
+        }
+      } catch (error) {
+        console.error(`[Notifications] Attempt ${attempt} failed:`, error);
+      }
+      
+      if (attempt < 3) {
+        // Wait before retry (2s, 4s)
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      }
     }
   }
 
@@ -193,9 +225,11 @@ class NotificationService {
   private async sendTokenToServer(token: string) {
     try {
       console.log('[Notifications] Sending push token to server...');
+      console.log('[Notifications] Token to send:', token.substring(0, 40) + '...');
       const response = await apiClient.post('/api/user/push-token', { token, platform: Platform.OS });
+      console.log('[Notifications] Server response status:', response.status);
       if (response.error) {
-        console.error('[Notifications] Server rejected push token:', response.error);
+        console.error('[Notifications] Server rejected push token:', response.error, 'Status:', response.status);
       } else {
         console.log('[Notifications] Push token registered with server successfully');
         this.tokenSentToServer = true;
@@ -316,7 +350,7 @@ class NotificationService {
   }
 
   // Local notification for testing
-  async sendLocalNotification(title: string, body: string, data?: object) {
+  async sendLocalNotification(title: string, body: string, data?: Record<string, unknown>) {
     if (!Notifications) {
       await this.loadModules();
     }
@@ -354,6 +388,41 @@ class NotificationService {
       return { remove: () => {} };
     }
     return Notifications.addNotificationResponseReceivedListener(callback);
+  }
+
+  // Force re-register push token (useful for troubleshooting)
+  async forceReRegister(): Promise<boolean> {
+    console.log('[Notifications] Force re-registering push token...');
+    
+    // Check if auth cookies are available
+    const cookies = authClient.getCookie();
+    if (!cookies) {
+      console.warn('[Notifications] No auth cookies available - user may not be logged in');
+    } else {
+      console.log('[Notifications] Auth cookies present:', cookies.length, 'chars');
+    }
+    
+    this.tokenSentToServer = false;
+    this.expoPushToken = null;
+    await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+    
+    const token = await this.registerForPushNotifications();
+    
+    // If token registration failed, try ensureTokenOnServer which has retry logic
+    if (token && !this.tokenSentToServer) {
+      await this.ensureTokenOnServer();
+    }
+    
+    return !!token && this.tokenSentToServer;
+  }
+
+  // Get current status for debugging
+  getStatus(): { hasToken: boolean; tokenSentToServer: boolean; initialized: boolean } {
+    return {
+      hasToken: !!this.expoPushToken,
+      tokenSentToServer: this.tokenSentToServer,
+      initialized: this.initialized,
+    };
   }
 }
 

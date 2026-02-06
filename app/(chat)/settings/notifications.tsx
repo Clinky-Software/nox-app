@@ -35,6 +35,8 @@ export default function NotificationsScreen() {
     mutedGroups: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [debugStatus, setDebugStatus] = useState<{ hasToken: boolean; tokenSentToServer: boolean; initialized: boolean } | null>(null);
+  const [isReRegistering, setIsReRegistering] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -44,10 +46,30 @@ export default function NotificationsScreen() {
     try {
       const savedSettings = await notificationService.getSettings();
       setSettings(savedSettings);
+      const status = notificationService.getStatus();
+      setDebugStatus(status);
     } catch (err) {
       // Use defaults
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForceReRegister = async () => {
+    setIsReRegistering(true);
+    try {
+      const success = await notificationService.forceReRegister();
+      const status = notificationService.getStatus();
+      setDebugStatus(status);
+      if (success) {
+        Alert.alert('Success', 'Push token re-registered successfully');
+      } else {
+        Alert.alert('Error', 'Failed to re-register push token. Check logs for details.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'An error occurred while re-registering');
+    } finally {
+      setIsReRegistering(false);
     }
   };
 
@@ -273,6 +295,52 @@ export default function NotificationsScreen() {
             })}
           </Card>
         )}
+
+        {/* Debug Section */}
+        <Card style={[styles.section, { marginBottom: Spacing.xl }]}>
+          <Text style={styles.sectionTitle}>Troubleshooting</Text>
+          <Text style={styles.sectionDescription}>
+            Debug push notification status
+          </Text>
+          
+          {debugStatus && (
+            <View style={styles.debugInfo}>
+              <View style={styles.debugRow}>
+                <Text style={styles.debugLabel}>Token registered:</Text>
+                <Text style={[styles.debugValue, debugStatus.hasToken ? styles.debugSuccess : styles.debugError]}>
+                  {debugStatus.hasToken ? 'Yes' : 'No'}
+                </Text>
+              </View>
+              <View style={styles.debugRow}>
+                <Text style={styles.debugLabel}>Token sent to server:</Text>
+                <Text style={[styles.debugValue, debugStatus.tokenSentToServer ? styles.debugSuccess : styles.debugError]}>
+                  {debugStatus.tokenSentToServer ? 'Yes' : 'No'}
+                </Text>
+              </View>
+              <View style={styles.debugRow}>
+                <Text style={styles.debugLabel}>Service initialized:</Text>
+                <Text style={[styles.debugValue, debugStatus.initialized ? styles.debugSuccess : styles.debugError]}>
+                  {debugStatus.initialized ? 'Yes' : 'No'}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.reRegisterButton, isReRegistering && styles.reRegisterButtonDisabled]}
+            onPress={handleForceReRegister}
+            disabled={isReRegistering}
+          >
+            {isReRegistering ? (
+              <ActivityIndicator size="small" color={Colors.text} />
+            ) : (
+              <>
+                <Ionicons name="refresh" size={18} color={Colors.text} />
+                <Text style={styles.reRegisterButtonText}>Re-register Push Token</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -405,5 +473,49 @@ const styles = StyleSheet.create({
   },
   unmuteButtonText: {
     color: Colors.primary,
+  },
+  debugInfo: {
+    marginVertical: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.surfaceHover,
+    borderRadius: BorderRadius.md,
+  },
+  debugRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  debugLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  debugValue: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+  },
+  debugSuccess: {
+    color: Colors.success || '#22c55e',
+  },
+  debugError: {
+    color: Colors.error || '#ef4444',
+  },
+  reRegisterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.surfaceHover,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+  },
+  reRegisterButtonDisabled: {
+    opacity: 0.6,
+  },
+  reRegisterButtonText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+    color: Colors.text,
   },
 });

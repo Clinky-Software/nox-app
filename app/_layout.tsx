@@ -24,7 +24,11 @@ function RootLayoutNav() {
   // Initialize notifications when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      notificationService.init();
+      // Small delay to ensure auth cookies are ready
+      const initTimer = setTimeout(() => {
+        console.log('[App] Initializing notification service after auth...');
+        notificationService.init();
+      }, 1000);
       
       // Listen for notifications received while app is foregrounded
       notificationListener.current = notificationService.addNotificationReceivedListener(notification => {
@@ -50,6 +54,7 @@ function RootLayoutNav() {
       });
 
       return () => {
+        clearTimeout(initTimer);
         if (notificationListener.current) {
           notificationListener.current.remove();
         }

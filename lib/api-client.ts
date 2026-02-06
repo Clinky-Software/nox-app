@@ -70,7 +70,8 @@ class ApiClient {
     // Get cookies from authClient (managed by better-auth)
     const cookies = authClient.getCookie();
     if (__DEV__) {
-      console.log('[ApiClient] Cookies from authClient:', cookies ? 'present' : 'null/empty');
+      console.log('[ApiClient] Request:', method, endpoint);
+      console.log('[ApiClient] Cookies:', cookies ? `present (${cookies.length} chars)` : 'null/empty');
     }
     if (cookies) {
       headers['Cookie'] = cookies;
